@@ -7,7 +7,7 @@ def get_file_properties(fname):
                   'FileVersion', 'OriginalFilename', 'SpecialBuild')
 
     props = {'FixedFileInfo': None, 'StringFileInfo': None, 'FileVersion': None, 'FileDescription': None}
-
+   # try:  
     fixed_info = win32api.GetFileVersionInfo(fname, '\\')
     props['FixedFileInfo'] = fixed_info
     props['FileVersion'] = "%d.%d.%d.%d" % (fixed_info['FileVersionMS'] / 65536,
