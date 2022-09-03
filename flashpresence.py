@@ -12,19 +12,15 @@ def checkprocess(targetname):
                 psutil.ZombieProcess):
             pass
     return False
+
 def get_file_properties(fname):
-    """
-    Read all properties of the given file return them as a dictionary.
-    """
     prop_names = ('Comments', 'InternalName', 'ProductName',
                   'CompanyName', 'LegalCopyright', 'ProductVersion',
                   'FileDescription', 'LegalTrademarks', 'PrivateBuild',
                   'FileVersion', 'OriginalFilename', 'SpecialBuild')
 
-    props = {'FixedFileInfo': None, 'StringFileInfo': None, 'FileVersion': None}
+    props = {'FixedFileInfo': None, 'StringFileInfo': None, 'FileVersion': None, 'FileDescription': None}
 
-   # try:
-        # backslash as parm returns dictionary of numeric info corresponding to VS_FIXEDFILEINFO struc
     fixed_info = win32api.GetFileVersionInfo(fname, '\\')
     props['FixedFileInfo'] = fixed_info
     props['FileVersion'] = "%d.%d.%d.%d" % (fixed_info['FileVersionMS'] / 65536,
@@ -53,8 +49,7 @@ def get_file_properties(fname):
 if __name__ == "__main__":
 
     print("Started.")
-    DebugRunning = False
-    StandaloneRunning = False
+    Mode = "S"
     RPCRun = False
     TYPE = "Unknown"
     VERSION = "Unknown"
@@ -63,49 +58,43 @@ if __name__ == "__main__":
     RPC = Presence(client_id)
     fpd = "flashplayer_debug.exe"
     fp = "flashplayer.exe"
+    propsfp = get_file_properties(fp)
+    propsfpd = get_file_properties(fpd)
+    fileversionfp = propsfp["FileVersion"]
+    fileversionfpd = propsfpd["FileVersion"]
+          
     while True:  # The presence will stay on as long as the program is running
         time.sleep(4)
-        
-        if checkprocess(fpd) == True:
+        isfp = propsfp["StringFileInfo"]["FileDescription"].find("Adobe Flash Player")
+        isfpd = propsfpd["StringFileInfo"]["FileDescription"].find("Adobe Flash Player")
+        if isfp == -1:
+            print("Your flashplayer.exe is not a Flash Player")
+        elif isfpd == -1:
+            print("Your flashplayer_debug.exe is not a Flash Player")
+        elif isfp and isfpd == -1:
+            print("Both flashplayer.exe and flashplayer.exe are not Flash Player")
+            continue
+        debugon = checkprocess(fpd)
+        standardon = checkprocess(fp)            
+        if (debugon or standardon) == False:
+            if RPCRun:
+                RPC.close()
+                RPCRun = False
+            continue
+        if RPCRun == False:
+            RPC.connect()
+            RPCRun = True
+        if debugon and standardon:
+            print("Found Debug and Standard Build")
+            TYPE = "Multiple Running"       
+            VERSION = f"Multiple Running" 
+        elif debugon:
             print("Found Debug Build")
+            VERSION = propsfpd['FileVersion']
             TYPE = "Debug"
-            props = get_file_properties(fpd)
-            #VERSION = props['StringFileInfo']['ProductVersion']
-            VERSION = props['FileVersion']
-            if DebugRunning == False and RPCRun == False:
-              RPC.connect()
-              RPCRun = True
-            # RPC.update(state="Idle", details="Not Quite Dead Yet.", large_image="afp32_big", large_text=f"Version {VERSION} ({TYPE})")
-            DebugRunning = True
-        else:
-            print("Debug Build Not Found")
-            if DebugRunning == True and RPCRun == True:
-                DebugRunning = False
-            if StandaloneRunning == False and RPCRun == True:
-                RPCRun = False
-                RPC.close()
-  
-        if checkprocess(fp) == True:
-            print("Found Standalone Build")
+        elif standardon:
+            print("Found Standard Build")
+            VERSION = propsfp['FileVersion']
             TYPE = "Standard"
-            props = get_file_properties(fp)
-            #VERSION = props['StringFileInfo']['ProductVersion']
-            VERSION = props['FileVersion']
-            if StandaloneRunning == False and RPCRun == False:
-              RPC.connect()
-              RPCRun = True
-             # RPC.update(state="Idle", details="Not Quite Dead Yet.", large_image="afp32_big", large_text=f"Version {VERSION} ({TYPE})")
-            StandaloneRunning = True 
-        else:
-            print("Standalone Build Not Found")
-            if StandaloneRunning == True and RPCRun == True:
-                StandaloneRunning = False
-            if DebugRunning == False and RPCRun == True:
-                RPCRun = False
-                RPC.close()
-            
-        if DebugRunning == True and StandaloneRunning == True:
-           TYPE = "Multiple Running"
-           VERSION = "Multiple Running" 
         if RPCRun == True:
            RPC.update(state="Idle", details="Not Quite Dead Yet.", large_image="afp32_big", large_text=f"Version {VERSION} ({TYPE})")
