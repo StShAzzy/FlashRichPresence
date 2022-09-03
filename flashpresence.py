@@ -49,7 +49,6 @@ def get_file_properties(fname):
 if __name__ == "__main__":
 
     print("Started.")
-    Mode = "S"
     RPCRun = False
     TYPE = "Unknown"
     VERSION = "Unknown"
