@@ -1,3 +1,4 @@
+assert ("win32" in sys.platform), "This program is only for Windows."
 import psutil
 from pypresence import Presence
 import time
@@ -5,8 +6,6 @@ import win32api
 import sys
 import checkprocess as cp
 import getfileprops as gf
-
-assert ("win32" in sys.platform), "This program is only for Windows."
 
 if __name__ == "__main__":
 
