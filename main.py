@@ -4,61 +4,66 @@ import psutil
 from pypresence import Presence
 import time
 import win32api
-import checkprocess as cp
 import getfileprops as gf
+import verifyfpprocess as vp
 
 if __name__ == "__main__":
 
     print("Started.")
-    Mode = "S"
     RPCRun = False
+    alreadyverifyfps = [False, False]
+    fpd = None
+    fp = None
     TYPE = "Unknown"
     VERSION = "Unknown"
   
     client_id = '1013717821122936873'
     RPC = Presence(client_id)
-    fpd = "flashplayer_debug.exe"
-    fp = "flashplayer.exe"
-    try:
-        propsfp = gf.get_file_properties(fp)
-        propsfpd = gf.get_file_properties(fpd)
-        fileversionfp = propsfp["FileVersion"]
-        fileversionfpd = propsfpd["FileVersion"]
-    except:
-        print("There's no Flash Player on the folder that I am!")
-        time.sleep(5)
-        exit()
 
     while True:  # The presence will stay on as long as the program is running
-        time.sleep(4)
-        isfp = propsfp["StringFileInfo"]["FileDescription"].find("Adobe Flash Player")
-        isfpd = propsfpd["StringFileInfo"]["FileDescription"].find("Adobe Flash Player")
-        if isfp == -1:
-            print("Your flashplayer.exe is not a Flash Player")
-        elif isfpd == -1:
-            print("Your flashplayer_debug.exe is not a Flash Player")
-        elif isfp and isfpd == -1:
-            print("Both flashplayer.exe and flashplayer.exe are not Flash Player")
-            continue
-        debugon = cp.checkprocess(fpd)
-        standardon = cp.checkprocess(fp)            
-        if (debugon or standardon) == False:
+        time.sleep(1)
+        if alreadyverifyfps[0] == False: 
+            fp = vp.verifyfpprocess("S")
+        if alreadyverifyfps[1] == False:
+            fpd = vp.verifyfpprocess("D")
+
+        if RPCRun:
+            fpd[0] = vp.verifyrunningonly(str(fpd[1]))
+            fp[0] = vp.verifyrunningonly(str(fp[1]))
+        propsfp = None
+        propsfpd = None
+        fileversionfpd = None
+        fileversionfp = None
+        if fpd[0]:
+            propsfpd = gf.get_file_properties(fpd[1])
+            fileversionfpd = propsfpd["FileVersion"]
+        if fp[0]:
+            propsfp = gf.get_file_properties(fp[1])
+            fileversionfp = propsfp["FileVersion"]
+        if (fpd[0] or fp[0]) == False:
+            print("Didn't found any Flash Player running") 
             if RPCRun:
                 RPC.close()
                 RPCRun = False
+                alreadyverifyfps[0] = False
+                alreadyverifyfps[1] = False
             continue
         if RPCRun == False:
             RPC.connect()
             RPCRun = True
-        if debugon and standardon:
+            if fp[0]:
+                alreadyverifyfps[0] = True
+            elif fpd[0]:
+                alreadyverifyfps[1] = True
+        if fpd[0] and fp[0]:
             print("Found Debug and Standard Build")
             TYPE = "Multiple Running"       
             VERSION = f"Multiple Running" 
-        elif debugon:
+        elif fpd[0]:
             print("Found Debug Build")
             VERSION = propsfpd['FileVersion']
             TYPE = "Debug"
-        elif standardon:
+        elif fp[0]:
             print("Found Standard Build")
             VERSION = propsfp['FileVersion']
             TYPE = "Standard"
