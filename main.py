@@ -1,71 +1,74 @@
 import sys
-assert ("win32" in sys.platform), "This program is only for Windows."
+if sys.platform != "win32":
+    print("This program is only for Windows")
+    sys.exit(1)
 import psutil
 from pypresence import Presence
 import time
 import win32api
-import getfileprops as gf
-import verifyfpprocess as vp
+import getfileprops
+import verifyfpprocess
 
 if __name__ == "__main__":
-
+    #fp means flashplayer, fpd means flashplayerdebug
     print("Started.")
-    RPCRun = False
-    alreadyverifyfps = [False, False]
-    fpd = None
-    fp = None
-    TYPE = "Unknown"
-    VERSION = "Unknown"
+    rpcrun = False # This is for verifying if the rich presence is running or not.
+    already_verified_fps = [False, False] # This is for verifying if verifyfpprocess was already ran or not for flashplayer debug or flashplayer standard.
+    fpdinfo = None # The variable for information from flashplayer debug, such as if it's running(true or false) or the flash player debug path.
+    fpinfo = None # # The same as the variable above, but for flash player standard.
+    type = "Unknown" # The type of flash player, standard or debug mode.
+    version = "Unknown" # The variable to save the flash player version.
   
-    client_id = '1013717821122936873'
-    RPC = Presence(client_id)
+    CLIENT_ID = '1013717821122936873' # Don't change that, please.
+    RPC = Presence(client_id) # Client ID connect
 
-    while True:  # The presence will stay on as long as the program is running
+    while True:
         time.sleep(1)
-        if alreadyverifyfps[0] == False: 
-            fp = vp.verifyfpprocess("S")
+        
+        if already_verified_fps[0] == False: # This verify if verifyfpprocess already ran to get the flashplayer(standard) info, if it has been already ran, so it won't run again. 
+            fpinfo = verifyfpprocess.verifyfpprocess("S") 
         if alreadyverifyfps[1] == False:
-            fpd = vp.verifyfpprocess("D")
+            fpdinfo = verifyfpprocess.verifyfpprocess("D")
 
         if RPCRun:
-            fpd[0] = vp.verifyrunningonly(str(fpd[1]))
-            fp[0] = vp.verifyrunningonly(str(fp[1]))
-        propsfp = None
-        propsfpd = None
+            fpdinfo[0] = verifyfpprocess.verifyrunningonly(str(fpdinfo[1]))
+            fpinfo[0] = verifyfpprocess.verifyrunningonly(str(fpinfo[1]))
+        filepropsfp = None
+        filepropsfpd = None
         fileversionfpd = None
         fileversionfp = None
         if fpd[0]:
-            propsfpd = gf.get_file_properties(fpd[1])
-            fileversionfpd = propsfpd["FileVersion"]
+            filepropsfpd = getfileprops.get_file_properties(fpdinfo[1])
+            fileversionfpd = filepropsfpd["FileVersion"]
         if fp[0]:
-            propsfp = gf.get_file_properties(fp[1])
-            fileversionfp = propsfp["FileVersion"]
-        if (fpd[0] or fp[0]) == False:
+            filepropsfp = getfileprops.get_file_properties(fpinfo[1])
+            fileversionfp = filepropsfp["FileVersion"]
+        if (fpdinfo[0] or fpinfo[0]) == False:
             print("Didn't found any Flash Player running") 
-            if RPCRun:
+            if rpcrun:
                 RPC.close()
-                RPCRun = False
-                alreadyverifyfps[0] = False
-                alreadyverifyfps[1] = False
+                rpcrun = False
+                already_verified_fps[0] = False
+                already_verified_fps[1] = False
             continue
-        if RPCRun == False:
+        if rpcrun == False:
             RPC.connect()
-            RPCRun = True
-            if fp[0]:
-                alreadyverifyfps[0] = True
-            elif fpd[0]:
-                alreadyverifyfps[1] = True
-        if fpd[0] and fp[0]:
-            print("Found Debug and Standard Build")
-            TYPE = "Multiple Running"       
-            VERSION = f"Multiple Running" 
-        elif fpd[0]:
+            rpcrun = True
+            if fpinfo[0]:
+                already_verified_fps[0] = True
+            elif fpdinfo[0]:
+                already_verified_fps[1] = True
+        if fpdinfo[0] and fpinfo[0]:
+            print("Found Debug and Standard Build")      
+            version = f"Multiple Running" 
+            type = "Multiple Running" 
+        elif fpdinfo[0]:
             print("Found Debug Build")
-            VERSION = propsfpd['FileVersion']
-            TYPE = "Debug"
-        elif fp[0]:
+            version = propsfpd['FileVersion']
+            type = "Debug"
+        elif fpinfo[0]:
             print("Found Standard Build")
-            VERSION = propsfp['FileVersion']
-            TYPE = "Standard"
-        if RPCRun == True:
-           RPC.update(state="Idle", details="Not Quite Dead Yet.", large_image="afp32_big", large_text=f"Version {VERSION} ({TYPE})")
+            version = propsfp['FileVersion']
+            type = "Standard"
+        if rpcrun == True:
+           RPC.update(state="Idle", details="Not Quite Dead Yet.", large_image="afp32_big", large_text=f"Version {version} ({type})")
