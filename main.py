@@ -20,27 +20,27 @@ if __name__ == "__main__":
     version = "Unknown" # The variable to save the flash player version.
   
     CLIENT_ID = '1013717821122936873' # Don't change that, please.
-    RPC = Presence(client_id) # Client ID connect
+    RPC = Presence(CLIENT_ID) # Client ID connect
 
     while True:
         time.sleep(1)
         
         if already_verified_fps[0] == False: # This verify if verifyfpprocess already ran to get the flashplayer(standard) info, if it has been already ran, so it won't run again. 
             fpinfo = verifyfpprocess.verifyfpprocess("S") 
-        if alreadyverifyfps[1] == False:
+        if already_verified_fps[1] == False:
             fpdinfo = verifyfpprocess.verifyfpprocess("D")
 
-        if RPCRun:
+        if rpcrun:
             fpdinfo[0] = verifyfpprocess.verifyrunningonly(str(fpdinfo[1]))
             fpinfo[0] = verifyfpprocess.verifyrunningonly(str(fpinfo[1]))
         filepropsfp = None
         filepropsfpd = None
         fileversionfpd = None
         fileversionfp = None
-        if fpd[0]:
+        if fpdinfo[0]:
             filepropsfpd = getfileprops.get_file_properties(fpdinfo[1])
             fileversionfpd = filepropsfpd["FileVersion"]
-        if fp[0]:
+        if fpinfo[0]:
             filepropsfp = getfileprops.get_file_properties(fpinfo[1])
             fileversionfp = filepropsfp["FileVersion"]
         if (fpdinfo[0] or fpinfo[0]) == False:
@@ -64,11 +64,11 @@ if __name__ == "__main__":
             type = "Multiple Running" 
         elif fpdinfo[0]:
             print("Found Debug Build")
-            version = propsfpd['FileVersion']
+            version = filepropsfpd['FileVersion']
             type = "Debug"
         elif fpinfo[0]:
             print("Found Standard Build")
-            version = propsfp['FileVersion']
+            version = filepropsfp['FileVersion']
             type = "Standard"
         if rpcrun == True:
            RPC.update(state="Idle", details="Not Quite Dead Yet.", large_image="afp32_big", large_text=f"Version {version} ({type})")
