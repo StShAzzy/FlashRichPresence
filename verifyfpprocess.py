@@ -1,47 +1,64 @@
 import psutil
 import os
-import getfileprops
+import getfileprops as gp
 import time
 
-def verifyrunningonly(path): # Essa função é para verificar se o executável que é especificado no path está rodando nos processos ou não, essa função é pra verificar se o flashplayer está rodando ou não.
-    PIDS = psutil.pids()
-    for PID in PIDS:
+def verifyrunningonly(dir):
+    pids = psutil.pids()
+    user = psutil.users()[0][0]
+    for proc in psutil.process_iter(['pid', 'username']):
         try:
-            if path.lower() in psutil.Process(PID).cmdline()[0].lower():
+            if str(proc.info["username"]).find(user) != -1 and dir in psutil.Process(proc.info["pid"]).cmdline()[0]:
                 return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied,
-                psutil.ZombieProcess, IndexError):
-            pass
-    return False    
-def verifyfpprocess(MODE): # Essa função serve para poder verificar todos os processos dos sistemas, para assim pegar os directórios deles para verificar se os executáveis deles contém nos detalhes no FileDescription "Adoble Flash Player", se tiver, retorna uma LIST com um valor boleano e uma path, o valor boleano é pra falar que está executando. PS: O mode é para definir se quer encontrar a versão de debug ou standard do flash.
-    PIDS = psutil.pids()
-    PATHS = []
-    for PID in PIDS:
-        try:
-            PATHS.append(psutil.Process(PID).cmdline()[0])
         except (IndexError, psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
             pass
-        time.sleep(7.5/1000)
-    
-    for PATH in PATHS:
+    return False
+
+def verifyifdebug(path): # Verifica se o path dado no parâmetro é um Flash Player Debug.
+    with open(path, 'rb') as f:
+        hexdata = f.read().hex()
+        if hexdata.find("006465627567456e74657200") == -1:
+            f.close()
+            return False
+        f.close()
+        return True
+
+
+def verifyfpprocess(mode):
+    pids = psutil.pids()
+    paths = []
+    user = psutil.users()[0][0]
+    for proc in psutil.process_iter(['pid', 'username']):
         try:
-            FILESIZE = round(os.path.getsize(PATH)/2**20)
-        except FileNotFoundError:
+            if str(proc.info["username"]).find(user) != -1:
+                paths.append(psutil.Process(proc.info["pid"]).cmdline()[0])
+        except (IndexError, psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess):
             pass
-        props = None
-        if MODE == "S":
+
+    for path in paths:
+        props = 0
+        if mode == "S":
             try:
-                props = getfileprops.get_file_properties(path)
-                if props["StringFileInfo"]["FileDescription"].find("Adobe Flash Player") != -1 and FILESIZE < 16:
-                    return [True, PATH]
+                props = gp.get_file_properties(path)
+                if props["StringFileInfo"]["FileDescription"].find("Adobe Flash Player") != -1:
+                    try:
+                        debugon = verifyifdebug(path)
+                    except FileNotFoundError:
+                        continue
+                    if debugon == False:
+                        return [True, path]
             except:
                 pass
-        elif MODE == "D":
+        elif mode == "D":
             try:
-                props = getfileprops.get_file_properties(path)
-                if props["StringFileInfo"]["FileDescription"].find("Adobe Flash Player") != -1 and FILESIZE > 15:
-                    return [True, PATH]
+                props = gp.get_file_properties(path)
+                if props["StringFileInfo"]["FileDescription"].find("Adobe Flash Player") != -1:
+                    try:
+                        debugon = verifyifdebug(path)
+                    except FileNotFoundError:
+                        continue
+                    if debugon == True:
+                        return [True, path]
             except:
                 pass
-        time.sleep(7.5/1000)
     return [False, False]
