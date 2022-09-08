@@ -57,7 +57,7 @@ if __name__ == "__main__":
             filepropsfp = getfileprops.get_file_properties(fpinfo[1])
             fileversionfp = filepropsfp["FileVersion"]
         if (fpdinfo[0] or fpinfo[0]) == False:
-            print("Didn't found any Flash Player running") 
+            print("Couldn't find any Flash Player Player running") 
             if rpcrun:
                 RPC.close()
                 rpcrun = False
