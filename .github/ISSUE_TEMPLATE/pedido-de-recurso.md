@@ -1,6 +1,6 @@
 ---
 name: Pedido de recurso
-about: Sugira uma ideia para este projeto
+about: Sugira uma ideia para este projeto [PT]
 title: "[Feature]"
 labels: melhoria
 assignees: ''
